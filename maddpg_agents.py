@@ -117,10 +117,11 @@ class Maddpg():
         agent = self.agents[own_idx]
         
             
-        # ---------------------------- update critic ---------------------------- #
+        # ---------------------------- Update Critic ---------------------------- #
+
         # Get predicted next-state actions and Q values from target models        
         all_next_actions = torch.cat((agent.actor_target(own_states), agent.actor_target(other_states)),
-                                     dim =1).to(device) 
+                                      dim =1).to(device) 
         Q_targets_next = agent.critic_target(all_next_states, all_next_actions)
         
         
@@ -138,7 +139,8 @@ class Maddpg():
             torch.nn.utils.clip_grad_norm(agent.critic_local.parameters(), 1)
         agent.critic_optimizer.step()
 
-        # ---------------------------- update actor ---------------------------- #
+        # ---------------------------- Update Actor ---------------------------- #
+
         # Compute actor loss
         all_actions_pred = torch.cat((agent.actor_local(own_states), agent.actor_local(other_states).detach()),
                                      dim = 1).to(device)      
@@ -149,7 +151,7 @@ class Maddpg():
         actor_loss.backward()        
         agent.actor_optimizer.step()
 
-        # ----------------------- update target networks ----------------------- #
+        # ----------------------- Update Target Networks ----------------------- #
         agent.soft_update(agent.critic_local, agent.critic_target, TAU)
         agent.soft_update(agent.actor_local, agent.actor_target, TAU)                   
     
