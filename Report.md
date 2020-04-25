@@ -1,162 +1,97 @@
-# Deep Q-Learning Network (DQN) Agent Continuous Control Project
+# Deep Reinforcement Learning (MADDDPG) Agent Collaborate and Competition Project
 
 ### Introduction
 
 
 
-[image1]: https://user-images.githubusercontent.com/10624937/43851024-320ba930-9aff-11e8-8493-ee547c6af349.gif "Trained Agent"
+[image1]: https://user-images.githubusercontent.com/10624937/42135623-e770e354-7d12-11e8-998d-29fc74429ca2.gif "Tennis"
+
 [image2]: https://user-images.githubusercontent.com/10624937/43851646-d899bf20-9b00-11e8-858c-29b5c2c94ccc.png "Crawler"
 
 
-For this project, the [Reacher](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#reacher) environment was used.
+For this project, the [Tennis](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#tennis) environment was used.
 
 ![Trained Agent][image1]
 
 ## Environment Details
 
-In this environment, a double-jointed arm can move to target locations. A reward of +0.1 is provided for each step that the agent's hand is in the goal location. Thus, the goal of your agent is to maintain its position at the target location for as many time steps as possible.
+In this environment, two agents control rackets to bounce a ball over a net. If an agent hits the ball over the net, it receives a reward of +0.1. If an agent lets a ball hit the ground or hits the ball out of bounds, it receives a reward of -0.01. Thus, the goal of each agent is to keep the ball in play.
 
-The observation space consists of 33 variables corresponding to position, rotation, velocity, and angular velocities of the arm. Each action is a vector with four numbers, corresponding to torque applicable to two joints. Every entry in the action vector should be a number between -1 and 1.
+The observation space consists of 8 variables corresponding to the position and velocity of the ball and racket. Each agent receives its own, local observation. Two continuous actions are available, corresponding to movement toward (or away from) the net, and jumping.
 
-The task is episodic, and in order to solve the environment,  your agent must get an average score of +30 over 100 consecutive episodes.
+The task is episodic, and in order to solve the environment, your agents must get an average score of +0.5 (over 100 consecutive episodes, after taking the maximum over both agents). Specifically,
 
-This project was completed using the Udacity Workspace with GPU processing for a single agent. [Unity ML-agents](https://github.com/Unity-Technologies/ml-agents) is used at the baseline for creating the environment. There is a second version which contains 20 identical agents, each with its own copy of the environment. The second version is useful for algorithms like [PPO](https://arxiv.org/pdf/1707.06347.pdf), [A3C](https://arxiv.org/pdf/1602.01783.pdf), and [D4PG](https://openreview.net/pdf?id=SyZipzbCb) that use multiple (non-interacting, parallel) copies of the same agent to distribute the task of gathering experience and will be explored at a later time.
+- After each episode, we add up the rewards that each agent received (without discounting), to get a score for each agent. This yields 2 (potentially different) scores. We then take the maximum of these 2 scores.
+- This yields a single score for each episode.
 
 
-The task is episodic, and **in order to solve the environment, agent must get an average score of +30 over 100 consecutive episodes.** This Report.md describes an off-policy Deep Deterministic Policy Gradient (DDPG) implementation.
+The environment is considered solved, **when the average (over 100 episodes) of those scores is at least +0.5**.
 
 
 ## Agent Implementation
 
 ### Mulit-Agent Deep Deterministic Policy Gradient (MADDDPG)
 
-[Multi-Agent Deep Deterministic Policy Gradient (MADDPG)](https://arxiv.org/abs/1706.02275) builds upon the [Deep Deterministic Policy Gradient (DDPG)](https://arxiv.org/abs/1509.02971) algorithm for environments by simultaneoulsy learning a policy and a Q-function via the Bellman equation. The content below is referenced from [OpenAI](https://spinningup.openai.com/en/latest/algorithms/ddpg.html).
+[Multi-Agent Deep Deterministic Policy Gradient (MADDPG)](https://arxiv.org/abs/1706.02275) builds upon the [Deep Deterministic Policy Gradient (DDPG)](https://arxiv.org/abs/1509.02971) algorithm where multiple agents are coordinating to complete tasks with only local information. In the viewpoint of one agent, the environment is non-stationary as policies of other agents are quickly upgraded and remain unknown. MADDPG is an actor-critic model redesigned particularly for handling such a changing environment and interactions between agents.
 
 
 More concretely, consider a game with N agents with policies parameterized by θ = {θ<sub>1</sub>, ..., θ<sub>N</sub> }, and let π = {π<sub>1</sub>, ..., π<sub>N</sub> } be the set of all agent policies. Then we can write the gradient of the expected return for agent *i, J(θ<sub>i</sub>) = E[Ri]* as:
 
-![image](https://github.com/Ohara124c41/DRL-Continuous_Control/blob/master/formulae01.PNG?raw=true)
+![image](https://github.com/Ohara124c41/DRLND-Collaborate-n-Competition/blob/master/images/formulae01.PNG?raw=true)
 
 
-Here Q<sup>i</sup><sub>π</sub>(x, a1, ..., aN ) is a centralized action-value function that takes as input the actions of all
-agents, a1, . . . , aN , in addition to some state information x, and outputs the Q-value for agent i. In
-the simplest case, x could consist of the observations of all agents, x = (o1, ..., oN ), however we
-could also include additional state information if available. Since each Qπ
-i
-is learned separately,
-agents can have arbitrary reward structures, including conflicting rewards in a competitive setting.
-We can extend the above idea to work with deterministic policies. If we now consider N continuous
-policies µθi w.r.t. parameters θi (abbreviated as µi), the gradient can be written as:
-∇θiJ(µi) = Ex,a∼D[∇θiµi(ai
-|oi)∇aiQ
+Here Q<sup>i</sup><sub>π</sub>(x, a<sub>1</sub>, ..., a<sub>N</sub> ) is a centralized action-value function that takes as input the actions of all
+agents, a<sub>1</sub>, . . . , a<sub>N</sub> , in addition to some state information x, and outputs the Q-value for agent *i*. In
+the simplest case, x could consist of the observations of all agents, x = (o<sub>1</sub>, ..., o<sub>N</sub> ), however we
+could also include additional state information if available. Since each Q<sup>i</sup><sub>π</sub>
+is learned separately, agents can have arbitrary reward structures, including conflicting rewards in a competitive setting.
+
+We can extend the above idea to work with deterministic policies. If we now consider *N* continuous policies µθ<sub>i</sub> w.r.t. parameters θ<sub>i</sub> (abbreviated as µ<sub>i</sub>), the gradient can be written as:
+∇θ<sub>i</sub>J(µ<sub>i</sub>) = E<sub>x,a</sub>∼D[∇θ<sub>i</sub>µ<sub>i</sub>(a<sub>i</sub>|o<sub>i</sub>)∇a<sub>i</sub>Q
 µ
 i
-(x, a1, ..., aN )|ai=µi(oi)
-],
-
-This approach is closely connected to Q-learning, and is motivated the same way: if you know the optimal action-value function :math:`Q^*(s,a)`, then in any given state, the optimal action :math:`a^*(s)` can be found by solving
-
-.. math::
-
-    a^*(s) = \arg \max_a Q^*(s,a).
-
-DDPG interleaves learning an approximator to :math:`Q^*(s,a)` with learning an approximator to :math:`a^*(s)`, and it does so in a way which is specifically adapted for environments with continuous action spaces by relating to how  the max over actions in :math:`\max_a Q^*(s,a)` are computed.
-
-As the action space is continuous, the function :math:`Q^*(s,a)` is presumed to be differentiable with respect to the action argument. This allows for an efficient, gradient-based learning rule for a policy :math:`\mu(s)` which exploits that fact. Afterward, and approximation with :math:`\max_a Q(s,a) \approx Q(s,\mu(s))` can be derived.
-
-#### Replay Buffers.
-
-All standard algorithms for training a deep neural network to approximate :math:`Q^*(s,a)` make use of an experience replay buffer. This is the set :math:`{\mathcal D}` of previous experiences. In order for the algorithm to have stable behavior, the replay buffer should be large enough to contain a wide range of experiences, but it may not always be good to keep everything. If you only use the very-most recent data, you will overfit to that and things will break; if you use too much experience, you may slow down your learning. This may take some tuning to get right.
-
-#### Target Networks
-
-Q-learning algorithms make use of **target networks**. The term
-
-.. math::
-
-    r + \gamma (1 - d) \max_{a'} Q_{\phi}(s',a')
-
-is called the **target**, because when we minimize the MSBE loss, we are trying to make the Q-function be more like this target. Problematically, the target depends on the same parameters we are trying to train: :math:`\phi`. This makes MSBE minimization unstable. The solution is to use a set of parameters which comes close to :math:`\phi`, but with a time delay---that is to say, a second network, called the target network, which lags the first. The parameters of the target network are denoted :math:`\phi_{\text{targ}}`.
-
-In DQN-based algorithms, the target network is just copied over from the main network every some-fixed-number of steps. In DDPG-style algorithms, the target network is updated once per main network update by polyak averaging:
-
-.. math::
-
-    \phi_{\text{targ}} \leftarrow \rho \phi_{\text{targ}} + (1 - \rho) \phi,
-
-where :math:`\rho` is a hyperparameter between 0 and 1 (usually close to 1). (This hyperparameter is called ``polyak`` in our code).
-
-#### DDPG Specific
-
-Computing the maximum over actions in the target is a challenge in continuous action spaces. DDPG deals with this by using a **target policy network** to compute an action which approximately maximizes :math:`Q_{\phi_{\text{targ}}}`. The target policy network is found the same way as the target Q-function: by polyak averaging the policy parameters over the course of training.
-
-Putting it all together, Q-learning in DDPG is performed by minimizing the following MSBE loss with stochastic gradient descent:
-
-.. math::
-
-    L(\phi, {\mathcal D}) = \underset{(s,a,r,s',d) \sim {\mathcal D}}{{\mathrm E}}\left[
-        \Bigg( Q_{\phi}(s,a) - \left(r + \gamma (1 - d) Q_{\phi_{\text{targ}}}(s', \mu_{\theta_{\text{targ}}}(s')) \right) \Bigg)^2
-        \right],
-
-where :math:`\mu_{\theta_{\text{targ}}}` is the target policy.
+(x, a<sub>1</sub>, ..., a<sub>N</sub> )|a<sub>i</sub>=µ<sub>i</sub>(o<sub>i</sub>)],
 
 
-#### The Policy Learning Side of DDPG
 
-Policy learning in DDPG is fairly simple. We want to learn a deterministic policy :math:`\mu_{\theta}(s)` which gives the action that maximizes :math:`Q_{\phi}(s,a)`. Because the action space is continuous, and we assume the Q-function is differentiable with respect to action, we can just perform gradient ascent (with respect to policy parameters only) to solve
+The problem can be formalized in the multi-agent version of MDP, also known as Markov games. Say, there are N agents in total with a set of states S. Each agent owns a set of possible action, *A<sub>1</sub>,…,A<sub>N</sub>*, and a set of observation, O<sub>1</sub>,…,O<sub>N</sub>. The state transition function involves all states, action and observation spaces *T : S×A<sub>1</sub>×…A<sub>N</sub> ↦ S*. Each agent’s stochastic policy only involves its own state and action: πθ<sub>i</sub> : O<sub>i</sub>×A<sub>i</sub> ↦ [0,1], a probability distribution over actions given its own observation, or a deterministic policy: μθ<sub>i</sub> : O<sub>i</sub> ↦ A<sub>i</sub>.
 
-.. math::
+Let <span style="text-decoration:overline">o</span> =o<sub>1</sub>,…,o<sub>N</sub>, <span style="text-decoration:overline">μ</span> =μ<sub>1</sub>,…,μ<sub>N</sub> and the policies are parameterized by <span style="text-decoration:overline">θ</span> =θ<sub>1</sub>,…,θ<sub>N</sub>.
 
-    \max_{\theta} \underset{s \sim {\mathcal D}}{{\mathrm E}}\left[ Q_{\phi}(s, \mu_{\theta}(s)) \right].
+The critic in MADDPG learns a centralized action-value function Q<sub>i</sub><sup><span style="text-decoration:overline">μ</span></sup>(<span style="text-decoration:overline">o</span> ,a<sub>1</sub>,…,a<sub>N</sub>) for the i-th agent, where a<sub>1</sub>∈A<sub>1</sub>,…,a<sub>N</sub>∈A<sub>N</sub> are actions of all agents. Each Q<sub>i</sub><sup><span style="text-decoration:overline">μ</span></sup> i is learned separately for i=1,…,N and therefore multiple agents can have arbitrary reward structures, including conflicting rewards in a competitive setting. Meanwhile, multiple actors, one for each agent, are exploring and upgrading the policy parameters θ<sub>1</sub> on their own.
 
-Note that the Q-function parameters are treated as constants here.
+Actor update:
+
+![image](https://github.com/Ohara124c41/DRLND-Collaborate-n-Competition/blob/master/images/formulae02.PNG?raw=true)
+
+Where D is the memory buffer for experience replay, containing multiple episode samples (<span style="text-decoration:overline">o</span>  , a<sub>1</sub>,…,a <sub>N</sub>, r<sub>1</sub>,…,r<sub>N</sub>, <span style="text-decoration:overline">o′</span> ) — given current observation <span style="text-decoration:overline">o</span> , agents take action a<sub>1</sub>,…,a<sub>N</sub> and get rewards r<sub>1</sub>,…,r<sub>N</sub>, leading to the new observation o  ′.
+
+Critic update:
+
+![image](https://github.com/Ohara124c41/DRLND-Collaborate-n-Competition/blob/master/images/formulae03.PNG?raw=true)
+
+where <span style="text-decoration:overline">μ′</span> are the target policies with delayed softly-updated parameters.
+
+If the policies <span style="text-decoration:overline">μ</span>  are unknown during the critic update, we can ask each agent to learn and evolve its own approximation of others’ policies. Using the approximated policies, MADDPG still can learn efficiently although the inferred policies might not be accurate.
+
+To mitigate the high variance triggered by the interaction between competing or collaborating agents in the environment, MADDPG proposed one more element - policy ensembles:
+
+- Train K policies for one agent;
+- Pick a random policy for episode rollouts;
+- Take an ensemble of these K policies to do gradient update.
+
+In summary, MADDPG added three additional ingredients on top of DDPG to make it adapt to the multi-agent environment:
+
+- Centralized critic + decentralized actors;
+- Actors are able to use estimated policies of other agents for learning;
+- Policy ensembling is good for reducing variance.
+
 
 Below, the pseudocode is described:
 
 #### Pseudocode
 ----------
-
-.. math::
-    :nowrap:
-
-    \begin{algorithm}[H]
-        \caption{Deep Deterministic Policy Gradient}
-        \label{alg1}
-    \begin{algorithmic}[1]
-        \STATE Input: initial policy parameters $\theta$, Q-function parameters $\phi$, empty replay buffer $\mathcal{D}$
-        \STATE Set target parameters equal to main parameters $\theta_{\text{targ}} \leftarrow \theta$, $\phi_{\text{targ}} \leftarrow \phi$
-        \REPEAT
-            \STATE Observe state $s$ and select action $a = \text{clip}(\mu_{\theta}(s) + \epsilon, a_{Low}, a_{High})$, where $\epsilon \sim \mathcal{N}$
-            \STATE Execute $a$ in the environment
-            \STATE Observe next state $s'$, reward $r$, and done signal $d$ to indicate whether $s'$ is terminal
-            \STATE Store $(s,a,r,s',d)$ in replay buffer $\mathcal{D}$
-            \STATE If $s'$ is terminal, reset environment state.
-            \IF{it's time to update}
-                \FOR{however many updates}
-                    \STATE Randomly sample a batch of transitions, $B = \{ (s,a,r,s',d) \}$ from $\mathcal{D}$
-                    \STATE Compute targets
-                    \begin{equation*}
-                        y(r,s',d) = r + \gamma (1-d) Q_{\phi_{\text{targ}}}(s', \mu_{\theta_{\text{targ}}}(s'))
-                    \end{equation*}
-                    \STATE Update Q-function by one step of gradient descent using
-                    \begin{equation*}
-                        \nabla_{\phi} \frac{1}{|B|}\sum_{(s,a,r,s',d) \in B} \left( Q_{\phi}(s,a) - y(r,s',d) \right)^2
-                    \end{equation*}
-                    \STATE Update policy by one step of gradient ascent using
-                    \begin{equation*}
-                        \nabla_{\theta} \frac{1}{|B|}\sum_{s \in B}Q_{\phi}(s, \mu_{\theta}(s))
-                    \end{equation*}
-                    \STATE Update target networks with
-                    \begin{align*}
-                        \phi_{\text{targ}} &\leftarrow \rho \phi_{\text{targ}} + (1-\rho) \phi \\
-                        \theta_{\text{targ}} &\leftarrow \rho \theta_{\text{targ}} + (1-\rho) \theta
-                    \end{align*}
-                \ENDFOR
-            \ENDIF
-        \UNTIL{convergence}
-    \end{algorithmic}
-    \end{algorithm}
-
+![image](https://github.com/Ohara124c41/DRLND-Collaborate-n-Competition/blob/master/images/maddpg_pseudocode.PNG?raw=true)
 
 ## Model
 The next two entries visualize the flow diagrams for the Network. This work builds upon implementations from the first DRLND project [Navigation](https://github.com/Ohara124c41/DRLND-Navigation/blob/master/Report.md) and the second DRLND project [Continuous Control](https://github.com/Ohara124c41/DRL-Continuous_Control/blob/master/Report.md).
@@ -174,7 +109,7 @@ y = model(x)
 make_dot(y, params=dict(list(model.named_parameters())))
 ```
 
-![image](https://github.com/Ohara124c41/DRL-Continuous_Control/blob/master/actor.PNG?raw=true)
+![image](https://github.com/Ohara124c41/DRLND-Collaborate-n-Competition/blob/master/images/actor.PNG?raw=true)
 
 
 #### Critic
@@ -190,20 +125,25 @@ y = model(x, z)
 make_dot(y, params=dict(list(model.named_parameters())))
 ```
 
-![image](https://github.com/Ohara124c41/DRL-Continuous_Control/blob/master/critic.PNG?raw=true)
+![image](https://github.com/Ohara124c41/DRLND-Collaborate-n-Competition/blob/master/images/critic.PNG?raw=true)
 
 
 
 ### Code Implementation
+Note: the original OpenAI MADDPG implementation for policy ensemble and policy estimation can be found [here](https://www.dropbox.com/s/jlc6dtxo580lpl2/maddpg_ensemble_and_approx_code.zip?dl=0). The code is provided as-is.
 
 
-**NOTE:** Code will run in GPU if CUDA is available, otherwise it will run in CPU
+
+**NB:** Code will run in GPU if CUDA is available, otherwise it will run in CPU.
 
 Code is structured in different modules. The most relevant features will be explained next:
 
 1. **model.py:** It contains the main execution thread of the program. This file is where the main algorithm is coded (see *algorithm* above). PyTorch is utilized for training the agent in the environment. The agent has an Actor and Critic network.
-2. **ddpg_agent.py:** The model script contains  the **DDPG agent**, a **Replay Buffer memory**, and the **Q-Targets** feature. A `learn()` method uses batches to handle the value parameters and update the policy.
-3. **Continuous_Control.ipynb:** The Navigation Jupyter Notebook provides an environment to run the *Tennis* game, import dependencies, train the DDPG, visualize via Unity, and plot the results. The hyperparameters can be adjusted within the Notebook.
+2. **ddpg_agent.py:** The model script contains  the **DDPG agent**, a **Replay Buffer memory**, and the **Q-Targets** feature.
+3. **maddpg_agent.py:** Augments the DDPG `learn()` function for MADDPG via a `maddpg_learn()` method using batches to handle the value parameters and update the policy for `Q_targets`.
+4. **hyperparameters.py:** Allows for a common module to inherit preset hyperparameters for all modules.
+5. **memory.py:** Instantiates the buffer replay memory module.
+6. **Tennis.ipynb:** The Navigation Jupyter Notebook provides an environment to run the *Tennis* game, import dependencies, train the MADDPG, visualize via Unity, and plot the results.
 
 
 #### PyTorch Specifics
@@ -257,7 +197,7 @@ NOISE_REDUCTION = 0.995 	       # Noise amplitude decay ratio
 
 ### Results
 
-With the afformentioned setup, the agent was able to successfully meet the functional specifications in 500 episodes with an average score of 33.31 (see below):
+With the afformentioned setup, the agent was able to successfully meet the functional specifications in 3193 episodes with an average score of [0.50 2.60] (see below):
 ```py
 Episode 100	 Average Score: 0.00 (nb of total steps=1466     noise=0.0006)
 Episode 200	 Average Score: 0.01 (nb of total steps=3066     noise=0.0000)
@@ -294,14 +234,14 @@ Environment solved in 3193 episodes with an Average Score of 0.50 2.60
 ```
 
 
-<img src="results.png" width="850">
+![image](https://github.com/Ohara124c41/DRLND-Collaborate-n-Competition/blob/master/images/results.png?raw=true)
 
 
 ### Future Work
 
 This section contains two additional algorithms that would vastly improve over the current implementation, namely TRPO and TD3. Such algorithms have been developed to improve over DQNs and DDPGs.
 
-- [Trust Region Policy Optimization (TRPO)](https://arxiv.org/abs/1502.05477):
+- [Distributed Distributional DDPG (D4PG)](https://arxiv.org/abs/1502.05477):
 > We describe an iterative procedure for optimizing policies, with guaranteed monotonic improvement. By making several approximations to the theoretically-justified procedure, we develop a practical algorithm, called Trust Region Policy Optimization (TRPO). This algorithm is similar to natural policy gradient methods and is effective for optimizing large nonlinear policies such as neural networks. Our experiments demonstrate its robust performance on a wide variety of tasks: learning simulated robotic swimming, hopping, and walking gaits; and playing Atari games using images of the screen as input. Despite its approximations that deviate from the theory, TRPO tends to give monotonic improvement, with little tuning of hyperparameters.
 
 
@@ -310,10 +250,13 @@ This section contains two additional algorithms that would vastly improve over t
 > Twin Delayed Deep Deterministic policy gradient algorithm (TD3), an actor-critic algorithm which considers the interplay between function approximation error in both policy and value updates. We evaluate our algorithm on seven continuous control domains from OpenAI gym (Brockman et al., 2016), where we outperform the state of the art by a wide margin. TD3 greatly improves both the learning speed and performance of DDPG in a number of challenging tasks in the continuous control setting.  Our algorithm exceeds the performance of numerous state of the art algorithms. As our modifications are simple to implement, they can be easily added to any other actor-critic algorithm.
 
 
+Further more, the [Crawler](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#tennis) environment will be explored at a later time.
+
+![image03](https://user-images.githubusercontent.com/10624937/42135622-e55fb586-7d12-11e8-8a54-3c31da15a90a.gif)
 
 
 
 ## Additional References
-_[1] [High-Dimensional Continuous Control Using Generalized Advantage Estimation](https://arxiv.org/abs/1506.02438)_
+_[1] Mordatch et al. (OpenAI), [Emergence of Grounded Compositional Language in Multi-Agent Populations](https://arxiv.org/abs/1703.04908)._
 
-_[2] [CONTINUOUS CONTROL WITH DEEP REINFORCEMENT LEARNING](https://arxiv.org/pdf/1509.02971.pdf)._
+_[2] Lowe et al. (OpenAI), [Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments](https://arxiv.org/abs/1706.02275)._
