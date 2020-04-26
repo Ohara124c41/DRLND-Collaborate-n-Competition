@@ -174,14 +174,14 @@ MULTIPLE_LEARN_PER_UPDATE = 3      # Nb of multiple learning process performed i
 
 BUFFER_SIZE = int(1e5)             # Replay buffer size
 BATCH_SIZE = 256                   # Batch size #128
-ACTOR_FC1_UNITS = 512   	       # Number of units for L1 in the actor model #256
-ACTOR_FC2_UNITS = 256         	 # Number of units for L2 in the actor model #128
-CRITIC_FCS1_UNITS = 512        	# Number of units for L1 in the critic model #256
-CRITIC_FC2_UNITS = 256         	# Number of units for L2 in the critic model #128
-NON_LIN = F.relu      			 # Non linearity operator used in the model #F.leaky_relu
+ACTOR_FC1_UNITS = 512   	         # Number of units for L1 in the actor model #256
+ACTOR_FC2_UNITS = 256         	   # Number of units for L2 in the actor model #128
+CRITIC_FCS1_UNITS = 512          	 # Number of units for L1 in the critic model #256
+CRITIC_FC2_UNITS = 256         	   # Number of units for L2 in the critic model #128
+NON_LIN = F.relu      			       # Non linearity operator used in the model #F.leaky_relu
 LR_ACTOR = 1e-4                    # Learning rate of the actor #1e-4
-LR_CRITIC = 5e-3             	  # Learning rate of the critic #1e-3
-WEIGHT_DECAY = 0            	   # L2 weight decay #0.0001
+LR_CRITIC = 5e-3             	     # Learning rate of the critic #1e-3
+WEIGHT_DECAY = 0            	     # L2 weight decay #0.0001
 
 GAMMA = 0.995                      # Discount factor #0.99
 TAU = 1e-3                         # For soft update of target parameters
@@ -199,15 +199,15 @@ NOISE_REDUCTION = 0.995 	       # Noise amplitude decay ratio
 
 With the afformentioned setup, the agent was able to successfully meet the functional specifications in 3193 episodes with an average score of [0.50 2.60] (see below):
 ```py
-Episode 100	 Average Score: 0.00 (nb of total steps=1466     noise=0.0006)
-Episode 200	 Average Score: 0.01 (nb of total steps=3066     noise=0.0000)
-Episode 300	 Average Score: 0.03 (nb of total steps=5204     noise=0.0000)
-Episode 400	 Average Score: 0.01 (nb of total steps=6840     noise=0.0000)
-Episode 500	 Average Score: 0.00 (nb of total steps=8291     noise=0.0000)
-Episode 600	 Average Score: 0.00 (nb of total steps=9711     noise=0.0000)
-Episode 700	 Average Score: 0.00 (nb of total steps=11131    noise=0.0000)
-Episode 800	 Average Score: 0.01 (nb of total steps=12726    noise=0.0000)
-Episode 900	 Average Score: 0.05 (nb of total steps=15057    noise=0.0000)
+Episode 100	  Average Score: 0.00 (nb of total steps=1466     noise=0.0006)
+Episode 200	  Average Score: 0.01 (nb of total steps=3066     noise=0.0000)
+Episode 300	  Average Score: 0.03 (nb of total steps=5204     noise=0.0000)
+Episode 400	  Average Score: 0.01 (nb of total steps=6840     noise=0.0000)
+Episode 500	  Average Score: 0.00 (nb of total steps=8291     noise=0.0000)
+Episode 600	  Average Score: 0.00 (nb of total steps=9711     noise=0.0000)
+Episode 700	  Average Score: 0.00 (nb of total steps=11131    noise=0.0000)
+Episode 800	  Average Score: 0.01 (nb of total steps=12726    noise=0.0000)
+Episode 900	  Average Score: 0.05 (nb of total steps=15057    noise=0.0000)
 Episode 1000	Average Score: 0.02 (nb of total steps=17013    noise=0.0000)
 Episode 1100	Average Score: 0.06 (nb of total steps=19768    noise=0.0000)
 Episode 1200	Average Score: 0.05 (nb of total steps=22160    noise=0.0000)
